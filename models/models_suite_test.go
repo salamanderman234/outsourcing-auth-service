@@ -30,7 +30,7 @@ var _ = Describe("Crud operation using partner", Label("partner"),func() {
 			"gorm",
 			"localhost",
 			"3306",
-			"outsourcing-app",
+			"outsourcing-auth",
 		)
 		client, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 		if err != nil {
