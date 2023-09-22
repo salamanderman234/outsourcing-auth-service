@@ -1,6 +1,11 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"context"
+
+	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
+	"gorm.io/gorm"
+)
 
 type Partner struct {
 	gorm.Model
@@ -9,4 +14,21 @@ type Partner struct {
 	Name *string `json:"name" query:"name" gorm:"not null;type:varchar(255)"`
 	Avatar string `json:"avatar" query:"avatar" gorm:"default:''"`
 	About string `json:"about" query:"about" gorm:"default:''"`
+}
+
+func(p *Partner) IsModel() bool {
+	return true
+}
+
+func(p Partner) GetObject() domain.Model {
+	return &p
+}
+
+func(r *Partner) Search(ctx context.Context, client *gorm.DB) (any, error) {
+	partners := []Partner{}
+	result := client.WithContext(ctx).
+		Model(r).
+		Where(r).
+		Find(&partners) 
+	return partners, result.Error
 }

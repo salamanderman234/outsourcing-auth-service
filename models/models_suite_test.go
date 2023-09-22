@@ -19,7 +19,7 @@ func TestModels(t *testing.T) {
 }
 
 var _ = Describe("Crud operation using partner", Label("partner"),func() {
-	var repo domain.PartnerRepository
+	var repo domain.Repository
 	var partner1 model.Partner
 	var partner2 model.Partner
 
@@ -29,7 +29,7 @@ var _ = Describe("Crud operation using partner", Label("partner"),func() {
 		if err != nil {
 			panic(err)
 		}
-		repo = repository.NewPartnerRepository(client)
+		repo = repository.NewRepository(client)
 		unique := time.Now().UnixNano()
 		exampleEmail := fmt.Sprintf("%d@example.com", unique)
 		exampleName := "example"
@@ -47,14 +47,14 @@ var _ = Describe("Crud operation using partner", Label("partner"),func() {
 
 	When("correct partner model given", func () {
 		It("should be created", func (ctx SpecContext) {
-			err := repo.Create(ctx, partner1)
+			err := repo.Create(ctx, &partner1)
 			Expect(err).To(BeNil())
 		})
 	})
 
 	When("incorrect partner model given", func () {
 		It("should not be created", func (ctx SpecContext) {
-			err := repo.Create(ctx, partner2)
+			err := repo.Create(ctx, &partner2)
 			Expect(err).ToNot(BeNil())
 		})
 	})
@@ -62,16 +62,17 @@ var _ = Describe("Crud operation using partner", Label("partner"),func() {
 	When("get user by filter", func() {
 		It("return array of partner only contain one user", func (ctx SpecContext) {
 			id := uint(1)
-			data, _ := repo.FindById(ctx, id)
-			Expect(data).To(Not(Equal(model.Partner{})))
+			target := &model.Partner{}
+			data, _ := repo.FindById(ctx, id, target)
+			Expect(data.(*model.Partner)).To(Not(Equal(model.Partner{})))
 		})
 		It("return array of partners", func (ctx SpecContext) {
 			exampleName := "example"
 			filter := model.Partner {
 				Name: &exampleName,
 			}
-			data, _ := repo.Get(ctx, filter)
-			Expect(len(data) >=2).To(BeTrue())
+			data, _ := repo.Get(ctx, filter.Search)
+			Expect(len(data.([]model.Partner)) >=2).To(BeTrue())
 		})
 	})
 
@@ -82,21 +83,22 @@ var _ = Describe("Crud operation using partner", Label("partner"),func() {
 			exampleName := "changed from test"
 			partner := partner1
 			partner.Email = &exampleMail
-			err := repo.Create(ctx, partner)
+			err := repo.Create(ctx, &partner)
 			Expect(err).To(BeNil())
 			// search user
-			partners, _ := repo.Get(ctx, model.Partner{
+			filter := model.Partner {
 				Email: &exampleMail,
-			})
-			Expect(len(partners) == 1).To(Equal(true))
+			}
+			partners, _ := repo.Get(ctx, filter.Search)
+			Expect(len(partners.([]model.Partner)) == 1).To(Equal(true))
 			// update user
-			partner = partners[0]
-			affected, err := repo.Update(ctx, partner.ID, model.Partner{
+			resultPartner := partners.([]model.Partner)[0]
+			affected, err := repo.Update(ctx, resultPartner.ID, &model.Partner{
 				Name: &exampleName,
 			})
 			Expect(affected).To(Equal(1))
-			result, _ := repo.FindById(ctx, partner.ID)
-			Expect(*result.Name).To(Equal(exampleName))
+			result, _ := repo.FindById(ctx, resultPartner.ID, &model.Partner{})
+			Expect(*result.(*model.Partner).Name).To(Equal(exampleName))
 		})
 	})
 
@@ -106,19 +108,22 @@ var _ = Describe("Crud operation using partner", Label("partner"),func() {
 			exampleMail := fmt.Sprintf("%d@example.com", time.Now().UnixNano())
 			partner := partner1
 			partner.Email = &exampleMail
-			err := repo.Create(ctx, partner)
+			err := repo.Create(ctx, &partner)
 			Expect(err).To(BeNil())
 			// search user
-			partners, _ := repo.Get(ctx, model.Partner{
+			filter := model.Partner{
 				Email: &exampleMail,
-			})
-			Expect(len(partners) == 1).To(Equal(true))
+			}
+			partners, _ := repo.Get(ctx, filter.Search)
+			Expect(len(partners.([]model.Partner)) == 1).To(Equal(true))
 			// deleting user
-			partner = partners[0]
-			affected, err := repo.Delete(ctx, partner.ID)
+			partner = partners.([]model.Partner)[0]
+			affected, err := repo.Delete(ctx, partner.ID, &model.Partner{})
 			Expect(affected).To(Equal(1))
-			result, _ := repo.FindById(ctx, partner.ID)
-			Expect(result).To(Equal(model.Partner{}))
+			result, _ := repo.FindById(ctx, partner.ID, &model.Partner{})
+			// Expect(data.(*model.Partner)).To(Not(Equal(model.Partner{})))
+
+			Expect(result.(*model.Partner)).To(Equal(&model.Partner{}))
 		})
 	})
 	
