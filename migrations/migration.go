@@ -18,6 +18,7 @@ func main() {
 	client.Transaction(func (tx *gorm.DB) error {
 		models := model.GetAllModel()
 		for _, model := range models {
+			client.Migrator().DropTable(model)
 			err := client.AutoMigrate(model)
 			if err != nil {
 				tx.Rollback()

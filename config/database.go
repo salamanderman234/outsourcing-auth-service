@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func GetDatabaseDsn() string {
@@ -27,6 +28,6 @@ func ConnectDatabase() (*gorm.DB, error) {
 	dsn := GetDatabaseDsn()
 
 	return gorm.Open(mysql.Open(dsn), &gorm.Config{
-		
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 }

@@ -12,37 +12,39 @@ type repository struct {
 }
 
 func NewRepository(client *gorm.DB) domain.Repository {
-	return &repository {
+	return &repository{
 		client: client,
 	}
 }
 
-func(r repository) Create(ctx context.Context, data any) (error)  {
-	result := r.client.WithContext(ctx).Create(data)
-	if result != nil {
-		return result.Error
-	}
-	return nil
+func(r repository) Create(ctx context.Context, data domain.Model) (any,error)  {
+	obj := data.GetObject()
+	result := r.client.WithContext(ctx).Create(obj)
+	return obj, result.Error
+}	
+
+func(r repository) Get(ctx context.Context, query domain.SearchQueryFunc) (any, error) {
+	return query(ctx, r.client)
 }
-func(r repository) Get(ctx context.Context, filter any) ([]any, error) {
-	var data []any
-	result := r.client.WithContext(ctx).Model(filter).Where(filter).Find(data)
-	if result != nil {
-		return nil, result.Error
-	}
-	return data,nil
+
+func(r repository) FindById(ctx context.Context, id uint, target domain.Model) (any, error) {
+	data := target.GetObject()
+	result := r.client.WithContext(ctx).Where("id = ?", id).First(&data)
+	return data,result.Error
 }
-func(r repository) FindById(ctx context.Context, id uint, model any) (any, error) {
-	var data any
-	result := r.client.WithContext(ctx).Model(model).Where("id = ?", id).First(data)
-	if result != nil {
-		return nil, result.Error
-	}
-	return data,nil
+
+func(r repository) Update(ctx context.Context, id uint, data domain.Model) (any, int, error) {
+	obj := data.GetObject()
+	result := r.client.WithContext(ctx).
+		Model(data).
+		Where("id = ?", id).
+		Updates(obj)
+	return obj, int(result.RowsAffected),result.Error
 }
-func(r repository) Update(ctx context.Context, id uint, data any) (int, error) {
-	return 0, nil
-}
-func(r repository) Delete(ctx context.Context, id uint, model any) (int, error) {
-	return 0, nil
+
+func(r repository) Delete(ctx context.Context, id uint, target domain.Model) (int, error) {
+	result := r.client.WithContext(ctx).
+		Where("id = ?", id).
+		Delete(target.GetObject())
+	return int(result.RowsAffected), result.Error
 }

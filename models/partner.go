@@ -1,16 +1,38 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"context"
+
+	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
+	"gorm.io/gorm"
+)
 
 type Partner struct {
-	Email string `json:"email" query:"email" gorm:"unique"`
-	Password string `json:"password" query:"password"`
-	Name string `json:"name" query:"name"`
-	Avatar string `json:"avatar" query:"avatar" gorm:"default:''"`
-	About string `json:"about" query:"about" gorm:"default''"`
 	gorm.Model
+	Email *string `json:"email" query:"email" gorm:"unique;not null;type:varchar(255)"`
+	Password *string `json:"password" query:"password" gorm:"not null;type:varchar(32)"`
+	Name *string `json:"name" query:"name" gorm:"not null;type:varchar(255)"`
+	Avatar string `json:"avatar" query:"avatar" gorm:"default:''"`
+	About string `json:"about" query:"about" gorm:"default:''"`
 }
 
-func (p *Partner) IsModel() bool {
+func(p *Partner) IsModel() bool {
 	return true
+}
+
+func(p *Partner) GetID() uint {
+	return p.ID
+}
+
+func(p Partner) GetObject() domain.Model {
+	return &p
+}
+
+func(r *Partner) Search(ctx context.Context, client *gorm.DB) (any, error) {
+	partners := []Partner{}
+	result := client.WithContext(ctx).
+		Model(r).
+		Where(r).
+		Find(&partners) 
+	return partners, result.Error
 }
