@@ -17,9 +17,10 @@ func NewRepository(client *gorm.DB) domain.Repository {
 	}
 }
 
-func(r repository) Create(ctx context.Context, data domain.Model) (error)  {
-	result := r.client.WithContext(ctx).Create(data.GetObject())
-	return result.Error
+func(r repository) Create(ctx context.Context, data domain.Model) (any,error)  {
+	obj := data.GetObject()
+	result := r.client.WithContext(ctx).Create(obj)
+	return obj, result.Error
 }	
 
 func(r repository) Get(ctx context.Context, query domain.SearchQueryFunc) (any, error) {
@@ -32,12 +33,13 @@ func(r repository) FindById(ctx context.Context, id uint, target domain.Model) (
 	return data,result.Error
 }
 
-func(r repository) Update(ctx context.Context, id uint, data domain.Model) (int, error) {
+func(r repository) Update(ctx context.Context, id uint, data domain.Model) (any, int, error) {
+	obj := data.GetObject()
 	result := r.client.WithContext(ctx).
 		Model(data).
 		Where("id = ?", id).
-		Updates(data.GetObject())
-	return int(result.RowsAffected), result.Error
+		Updates(obj)
+	return obj, int(result.RowsAffected),result.Error
 }
 
 func(r repository) Delete(ctx context.Context, id uint, target domain.Model) (int, error) {

@@ -20,6 +20,10 @@ func(p *Partner) IsModel() bool {
 	return true
 }
 
+func(p *Partner) GetID() uint {
+	return p.ID
+}
+
 func(p Partner) GetObject() domain.Model {
 	return &p
 }

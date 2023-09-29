@@ -7,10 +7,10 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, data Model) (error)
+	Create(ctx context.Context, data Model) (any, error)
 	Get(ctx context.Context, query SearchQueryFunc) (any, error)
 	FindById(ctx context.Context, id uint, target Model) (any, error)
-	Update(ctx context.Context, id uint, data Model) (int, error)
+	Update(ctx context.Context, id uint, data Model) (any,int, error)
 	Delete(ctx context.Context, id uint, target Model) (int, error)
 }
 
