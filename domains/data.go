@@ -12,3 +12,8 @@ type Model interface {
 	GetID() uint
 	Search(ctx context.Context, client *gorm.DB) (any, error)
 }
+
+type Entity interface {
+	IsEntity() bool
+	GetObject() Entity
+}
