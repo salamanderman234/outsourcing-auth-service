@@ -37,8 +37,8 @@ var _ = Describe("Repository functionality", Label("Repository"),func() {
 		}
 		repo = repository.NewRepository(client)
 		// set field variable
-		// unique := time.Now().UnixNano()	-> ini membuat siapapun yang memakai ini pasti unique walaupun dipakai berulang-ulang
-		exampleEmail = fmt.Sprintf("asiap@example.com")
+		unique := time.Now().UnixNano()
+		exampleEmail = fmt.Sprintf("%d@example.com", unique)
 		exampleName = "salamanderman234"
 		examplePassword = "salamanderpassword" 
 
@@ -72,12 +72,15 @@ var _ = Describe("Repository functionality", Label("Repository"),func() {
 		})
 		When("duplicate email entry", func() {
 			It("should not be created successfully", func(ctx SpecContext) {
+				testMail := "asiap@eample.com"
 				new := model.Partner {
-					Email: dummy1.Email,
+					Email: &testMail,
 					Password: dummy1.Password,
 					Name: dummy1.Name,
 				}
+				repo.Create(ctx, &new)
 				_, err := repo.Create(ctx, &new)
+
 				Expect(err).ToNot(BeNil())
 			})
 		})

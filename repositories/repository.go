@@ -18,7 +18,7 @@ func NewRepository(client *gorm.DB) domain.Repository {
 }
 
 func(r repository) Create(ctx context.Context, data domain.Model) (any,error)  {
-	obj := data.GetObject()
+	obj := data
 	result := r.client.WithContext(ctx).Create(obj)
 	return obj, result.Error
 }	
@@ -28,13 +28,13 @@ func(r repository) Get(ctx context.Context, query domain.SearchQueryFunc) (any, 
 }
 
 func(r repository) FindById(ctx context.Context, id uint, target domain.Model) (any, error) {
-	data := target.GetObject()
+	data := target
 	result := r.client.WithContext(ctx).Where("id = ?", id).First(&data)
 	return data,result.Error
 }
 
 func(r repository) Update(ctx context.Context, id uint, data domain.Model) (any, int, error) {
-	obj := data.GetObject()
+	obj := data
 	result := r.client.WithContext(ctx).
 		Model(data).
 		Where("id = ?", id).
@@ -45,6 +45,6 @@ func(r repository) Update(ctx context.Context, id uint, data domain.Model) (any,
 func(r repository) Delete(ctx context.Context, id uint, target domain.Model) (int, error) {
 	result := r.client.WithContext(ctx).
 		Where("id = ?", id).
-		Delete(target.GetObject())
+		Delete(target)
 	return int(result.RowsAffected), result.Error
 }
