@@ -9,15 +9,15 @@ import (
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 )
 
-func CreateClaims(email *string, username *string ,avatar *string, group *string, id uint, expire time.Time) domain.JWTClaims {
+func CreateClaims(username *string, name *string ,avatar *string, group *string, id uint, expire time.Time) domain.JWTClaims {
 	claims := domain.JWTClaims {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID: strconv.Itoa(int(id)),
 			ExpiresAt: jwt.NewNumericDate(expire),
 		},
 		JWTPayload: domain.JWTPayload{
-			Email: email,
 			Username: username,
+			Name: name,
 			Group: group,
 			Avatar: avatar,
 		},
@@ -25,8 +25,43 @@ func CreateClaims(email *string, username *string ,avatar *string, group *string
 	return claims
 }
 
-func CreateToken(email *string, username *string ,avatar *string, group *string, id uint, expire time.Time) (string, error) {
-	claims := CreateClaims(email, username, avatar, group, id, expire)
+func CreatePairTokenFromModel(data domain.AuthModel, group string) (domain.AuthTokens, error) {
+	var pairs domain.AuthTokens
+	usernameField := data.GetUsernameField()
+	identityField := data.GetIdentityField()
+	avatarField := data.GetAvatarField()
+	idField := data.GetID()
+	groupField := group
+
+	access, err := CreateToken(
+		&usernameField, 
+		&identityField, 
+		&avatarField, 
+		&groupField, 
+		idField, 
+		domain.TokenExpiresAt,
+	)
+	if err != nil {
+		return pairs, err
+	}
+	refresh, err := CreateToken(
+		nil, 
+		nil, 
+		nil, 
+		&groupField, 
+		idField, 
+		domain.TokenRefreshExpiresAt,
+	)
+	if err != nil {
+		return pairs, err
+	}
+	pairs.Refresh = refresh
+	pairs.Access = access
+	return pairs, nil
+}
+
+func CreateToken(username *string, name*string ,avatar *string, group *string, id uint, expire time.Time) (string, error) {
+	claims := CreateClaims(username, name, avatar, group, id, expire)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte("asipa"))
 	if err != nil {

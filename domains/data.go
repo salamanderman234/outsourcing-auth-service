@@ -14,21 +14,41 @@ var (
 	TokenCookieName = "token"
 )
 
-type Model interface {	
+type Model interface {
 	IsModel() bool
 	GetID() uint
-	Search(ctx context.Context, client *gorm.DB) (any, error)
+	SearchQuery(ctx context.Context, client *gorm.DB) (any, error)
+
 }
 
 type Entity interface {
 	IsEntity() bool
+	GetCorrespondingModel() Model
+}
+
+type AuthModel interface {	
+	Model
+	GetUsernameField() string
+	GetIdentityField() string
+	GetPasswordField() string
+	GetAvatarField() string
+	SetPasswordField(value *string) 
+	SetUsernameField(value *string)
+	SetEmptyID()
+}
+
+type AuthEntity interface {
+	Entity
+	GetCorrespondingAuthModel() AuthModel
+	CheckRequiredRegisterField() bool
+	CheckRequiredLoginField() bool
 }
 
 type JWTPayload struct {
-	Username *string `json:"username"`
-    Email    *string `json:"email"`
-    Group    *string `json:"group"`
-	Avatar *string `json:"avatar"`
+	Name 		*string `json:"name"`
+    Username    *string `json:"username"`
+    Group    	*string `json:"group"`
+	Avatar 		*string `json:"avatar"`
 }
 
 type JWTClaims struct {
@@ -38,5 +58,5 @@ type JWTClaims struct {
 
 type AuthTokens struct {
 	Refresh string
-	Token string
+	Access string
 }

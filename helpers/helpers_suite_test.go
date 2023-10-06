@@ -75,7 +75,7 @@ var _ = Describe("helper function functionality", func() {
 				Expect(err).To(BeNil())
 				payload, ok := helper.VerifyToken(token)
 				Expect(ok).To(BeNil())
-				Expect(payload.Email).ToNot(BeNil())
+				Expect(payload.Username).ToNot(BeNil())
 			})
 		})
 	})

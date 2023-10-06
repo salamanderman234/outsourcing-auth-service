@@ -22,14 +22,26 @@ func TestServices(t *testing.T) {
 }
 
 var _ = Describe("Crud service functionality", Label("Crud Service"), func() {
-	
+	// var partner model.Partner
+	// var invalidPartner model.Partner
+	// var exampleName string
+	// var exampleEmail string
+	// var examplePassword string
+
+	BeforeEach(func() {
+		
+		// partner = model.Partner{
+
+		// }
+	})
 })
 
+// testing pertama gagal karean masalah unique email
 var _ = Describe("Partner auth service functionality", Label("Partner Auth Service"), func() {
-	var authService domain.PartnerAuthService
-	var validCreds domain.Entity
-	var invalidCreds domain.Entity
-	var wrongCreds domain.Entity
+	var authService domain.AuthService
+	var validCreds domain.AuthEntity
+	var invalidCreds domain.AuthEntity
+	var wrongCreds domain.AuthEntity
 
 	var emailCred string
 	var passCred string
@@ -50,16 +62,16 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 		emailCred = fmt.Sprintf("%d@example.com", unique)
 		passCred = "examplepassword"
 
-		validCreds = &entity.Credentials {
+		validCreds = &entity.PartnerEntity {
 			Email: &emailCred,
 			Password: &passCred,
 		}
-		invalidCreds = &entity.Credentials{
+		invalidCreds = &entity.PartnerEntity{
 			Email: &emailCred,
 		}
 		invalidPass := "fdsfds"
 		invalidEmail := "notfound@gmail.com"
-		wrongCreds = &entity.Credentials{
+		wrongCreds = &entity.PartnerEntity{
 			Email: &invalidEmail,
 			Password: &invalidPass,
 		}
@@ -76,7 +88,7 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 				}
 				token, err := authService.Register(ctx, data)
 				Expect(err).To(BeNil())
-				_, err = helper.VerifyToken(token.Token)
+				_, err = helper.VerifyToken(token.Access)
 				Expect(err).To(BeNil())
 				_, err = helper.VerifyToken(token.Refresh)
 				Expect(err).To(BeNil())
@@ -91,7 +103,7 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 				}
 				token, err := authService.Register(ctx, data)
 				Expect(err).ToNot(BeNil())
-				Expect(token.Token).To(Equal(""))
+				Expect(token.Access).To(Equal(""))
 				Expect(token.Refresh).To(Equal(""))
 			})
 		})
@@ -103,7 +115,7 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 				token, err := authService.Login(ctx, validCreds)
 				Expect(err).To(BeNil())
 				Expect(token).ToNot(Equal(""))
-				_, err = helper.VerifyToken(token.Token)
+				_, err = helper.VerifyToken(token.Access)
 				Expect(err).To(BeNil())
 				_, err = helper.VerifyToken(token.Refresh)
 				Expect(err).To(BeNil())
@@ -113,7 +125,7 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 			It("should be not logged in successfully", func(ctx SpecContext) {
 				token, err := authService.Login(ctx, invalidCreds)
 				Expect(token.Refresh).To(Equal(""))
-				Expect(token.Token).To(Equal(""))
+				Expect(token.Access).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -121,7 +133,7 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 			It("should be not logged in successfully", func(ctx SpecContext) {
 				token, err := authService.Login(ctx, wrongCreds)
 				Expect(token.Refresh).To(Equal(""))
-				Expect(token.Token).To(Equal(""))
+				Expect(token.Access).To(Equal(""))
 				Expect(err).To(Equal(domain.ErrInvalidCreds))
 			})
 		})
@@ -154,8 +166,8 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 					ExpiresAt: jwt.NewNumericDate(time.Now()),
 				},
 				JWTPayload: domain.JWTPayload{
-					Username: &username,
-					Email: &email,
+					Username: &email,
+					Name: &username,
 					Group: &role,
 					Avatar: &avatar,
 				},
@@ -225,8 +237,8 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 					ExpiresAt: jwt.NewNumericDate(time.Now()),
 				},
 				JWTPayload: domain.JWTPayload{
-					Username: &name,
-					Email: &email,
+					Name: &name,
+					Username: &email,
 				},
 			}
 			invalidToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -249,34 +261,34 @@ var _ = Describe("Partner auth service functionality", Label("Partner Auth Servi
 
 		When("using valid refresh token", func() {
 			It("should be returning a new pair of token", func(ctx SpecContext) {
-				tokens, err := authService.RenewToken(ctx, refresh)
+				tokens, err := authService.RenewToken(ctx, refresh, &entity.PartnerEntity{})
 				Expect(err).To(BeNil())
 				Expect(tokens.Refresh).ToNot(Equal(""))
-				Expect(tokens.Token).ToNot(Equal(""))
+				Expect(tokens.Access).ToNot(Equal(""))
 			})
 		})
 		When("using invalid refresh token", func() {
 			It("should be not returning a new pair of token", func(ctx SpecContext) {
-				tokens, err := authService.RenewToken(ctx, invalidRefresh)
+				tokens, err := authService.RenewToken(ctx, invalidRefresh, &entity.PartnerEntity{} )
 				Expect(err).To(Equal(domain.ErrTokenNotValid))
 				Expect(tokens.Refresh).To(Equal(""))
-				Expect(tokens.Token).To(Equal(""))
+				Expect(tokens.Access).To(Equal(""))
 			})
 		})
 		When("using invalid id refresh token", func() {
 			It("should be not returning a new pair of token", func(ctx SpecContext) {
-				tokens, err := authService.RenewToken(ctx, expiresRefresh)
+				tokens, err := authService.RenewToken(ctx, expiresRefresh, &entity.PartnerEntity{})
 				Expect(err).To(Equal(domain.ErrTokenIsExpired))
 				Expect(tokens.Refresh).To(Equal(""))
-				Expect(tokens.Token).To(Equal(""))
+				Expect(tokens.Access).To(Equal(""))
 			})
 		})
 		When("using invalid id refresh token", func() {
 			It("should be not returning a new pair of token", func(ctx SpecContext) {
-				tokens, err := authService.RenewToken(ctx, invalidIdRefresh)
+				tokens, err := authService.RenewToken(ctx, invalidIdRefresh, &entity.PartnerEntity{})
 				Expect(err).ToNot(BeNil())
 				Expect(tokens.Refresh).To(Equal(""))
-				Expect(tokens.Token).To(Equal(""))
+				Expect(tokens.Access).To(Equal(""))
 			})
 		})
 	})
