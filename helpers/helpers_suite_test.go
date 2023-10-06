@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 	model "github.com/salamanderman234/outsourcing-auth-profile-service/models"
@@ -20,16 +21,16 @@ var _ = Describe("helper function functionality", func() {
 		// var emptyPartnerModel model.Partner
 		// var emptyPartnerEntity entity.PartnerEntity
 		var examplePartnerModel model.Partner
-		// var examplePartnerEntity entity.PartnerEntity
+		var examplePartnerEntity entity.PartnerEntity
 
 		BeforeEach(func() {
 			exampleName := "test name"
 			examplePartnerModel = model.Partner{
 				Name: &exampleName,
 			}
-			// examplePartnerEntity = entity.PartnerEntity{
-			// 	Name: &exampleName,
-			// }
+			examplePartnerEntity = entity.PartnerEntity{
+				Name: &exampleName,
+			}
 		})
 
 		Describe("convertModelToEntity", func() {
@@ -40,6 +41,41 @@ var _ = Describe("helper function functionality", func() {
 					Expect(err).To(BeNil())
 					Expect(result.Name).To(Equal(examplePartnerModel.Name))
 				})
+			})
+		})
+		Describe("convertEntityToModel", func() {
+			When("given correct data", func() {
+				It("should not returning any error", func() {
+					var result model.Partner
+					err := helper.ConvertEntityToModel(&examplePartnerEntity, &result)
+					Expect(err).To(BeNil())
+					Expect(result.Name).To(Equal(examplePartnerEntity.Name))
+				})
+			})
+		})
+	})
+
+	Describe("jwt function", func() {
+		var email string
+		var username string
+		var avatar string
+		var role string
+		var id uint
+
+		BeforeEach(func() {
+			email = "asiap@gmail.com"
+			username = "asiap"
+			avatar = "//"
+			role = "admin"
+			id = 1
+		})
+		When("given correct data", func() {
+			It("should return valid token", func() {
+				token, err := helper.CreateToken(&email, &username, &avatar, &role, id, domain.TokenExpiresAt)
+				Expect(err).To(BeNil())
+				payload, ok := helper.VerifyToken(token)
+				Expect(ok).To(BeNil())
+				Expect(payload.Email).ToNot(BeNil())
 			})
 		})
 	})

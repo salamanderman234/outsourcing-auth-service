@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	"gorm.io/gorm"
@@ -33,6 +34,10 @@ func(r *Partner) Search(ctx context.Context, client *gorm.DB) (any, error) {
 	result := client.WithContext(ctx).
 		Model(r).
 		Where(r).
-		Find(&partners) 
-	return partners, result.Error
+		Find(&partners)
+	err := result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		err = domain.ErrRecordNotFound
+	}
+	return partners, err
 }
