@@ -3,12 +3,12 @@ package repository_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/salamanderman234/outsourcing-auth-profile-service/config"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
+	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 	model "github.com/salamanderman234/outsourcing-auth-profile-service/models"
 	repository "github.com/salamanderman234/outsourcing-auth-profile-service/repositories"
 )
@@ -37,8 +37,8 @@ var _ = Describe("Repository functionality", Label("Repository"),func() {
 		}
 		repo = repository.NewRepository(client)
 		// set field variable
-		unique := time.Now().UnixNano()
-		exampleEmail = fmt.Sprintf("%d@example.com", unique)
+		// unique := time.Now().UnixNano()	-> ini membuat siapapun yang memakai ini pasti unique walaupun dipakai berulang-ulang
+		exampleEmail = fmt.Sprintf("%s@example.com", helper.GenerateRandomString(5))
 		exampleName = "salamanderman234"
 		examplePassword = "salamanderpassword" 
 
@@ -95,8 +95,7 @@ var _ = Describe("Repository functionality", Label("Repository"),func() {
 			updated = model.Partner{
 				Name: &newName,
 			}
-			unique := time.Now().UnixNano()
-			anotherMail := fmt.Sprintf("%d@example.com", unique)
+			anotherMail := fmt.Sprintf("%s@example.com", helper.GenerateRandomString(5))
 			new := model.Partner {
 				Email: &anotherMail,
 				Name: &exampleName,
@@ -131,8 +130,7 @@ var _ = Describe("Repository functionality", Label("Repository"),func() {
 	Describe("Repository.delete()", func() {
 		var created domain.Model
 		BeforeEach(func(ctx SpecContext) {
-			unique := time.Now().UnixNano()
-			anotherMail := fmt.Sprintf("%d@example.com", unique)
+			anotherMail := fmt.Sprintf("%s@example.com", helper.GenerateRandomString(5))
 			new := model.Partner {
 				Email: &anotherMail,
 				Name: &exampleName,
