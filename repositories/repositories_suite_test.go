@@ -72,12 +72,15 @@ var _ = Describe("Repository functionality", Label("Repository"),func() {
 		})
 		When("duplicate email entry", func() {
 			It("should not be created successfully", func(ctx SpecContext) {
+				testMail := "asiap@eample.com"
 				new := model.Partner {
-					Email: dummy1.Email,
+					Email: &testMail,
 					Password: dummy1.Password,
 					Name: dummy1.Name,
 				}
+				repo.Create(ctx, &new)
 				_, err := repo.Create(ctx, &new)
+
 				Expect(err).ToNot(BeNil())
 			})
 		})
