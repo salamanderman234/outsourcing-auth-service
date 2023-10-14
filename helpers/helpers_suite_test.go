@@ -55,6 +55,16 @@ var _ = Describe("helper function functionality", func() {
 		})
 	})
 
+	Describe("random function", func () {
+		maxLength := 10
+		When("given correct number", func () {
+			It("should return n+2 random string", func () {
+				result := helper.GenerateRandomString(maxLength)
+				Expect(len(result)).To(Equal(maxLength))
+			})
+		})
+	})
+
 	Describe("jwt function", func() {
 		var email string
 		var username string

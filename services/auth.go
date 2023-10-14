@@ -22,11 +22,11 @@ func NewAuthService(repo domain.Repository) domain.AuthService {
 
 func(a *authService) Login(ctx context.Context, creds domain.AuthEntity) (domain.AuthTokens, error) {
 	var authTokens domain.AuthTokens
-	credsModel := creds.GetCorrespondingAuthModel()
 	// check required field
 	if !creds.CheckRequiredLoginField() {
 		return authTokens, domain.ErrMissingRequiredField
 	}
+	credsModel := creds.GetCorrespondingAuthModel()
 	// conversion
 	if err := helper.ConvertEntityToModel(creds, credsModel); err != nil {
 		return authTokens, domain.ErrConversionDataType
@@ -40,7 +40,7 @@ func(a *authService) Login(ctx context.Context, creds domain.AuthEntity) (domain
 	if err != nil {
 		return authTokens, err
 	}
-	result := data.([]domain.Model)
+	result := data
 	if len(result) != 1 {
 		return authTokens, domain.ErrInvalidCreds
 	}

@@ -17,7 +17,7 @@ var (
 type Model interface {
 	IsModel() bool
 	GetID() uint
-	SearchQuery(ctx context.Context, client *gorm.DB) (any, error)
+	SearchQuery(ctx context.Context, client *gorm.DB) ([]Model, error)
 
 }
 

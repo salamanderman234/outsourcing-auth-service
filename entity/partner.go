@@ -6,6 +6,7 @@ import (
 )
 
 type PartnerEntity struct {
+	ID 		 uint    `json:"id" query:"id"`
 	Email    *string `json:"email" query:"email"`
 	Password *string `json:"password" query:"password"`
 	Name     *string `json:"name" query:"name"`

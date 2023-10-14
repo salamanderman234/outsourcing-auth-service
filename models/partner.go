@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"errors"
 
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	"gorm.io/gorm"
@@ -60,15 +59,18 @@ func (p *Partner) SetEmptyID() {
 	p.ID = 0
 }
 
-func(r *Partner) SearchQuery(ctx context.Context, client *gorm.DB) (any, error) {
-	partners := []domain.Model{}
+func(r *Partner) SearchQuery(ctx context.Context, client *gorm.DB) ([]domain.Model, error) {
+	partners := []Partner{}
 	result := client.WithContext(ctx).
 		Model(r).
 		Where(r).
 		Find(&partners)
-	err := result.Error
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		err = domain.ErrRecordNotFound
+	if len(partners) <= 0 {
+		return nil, domain.ErrRecordNotFound
 	}
-	return partners, err
+	resultModel := make([]domain.Model, len(partners))
+	for index, partner := range partners {
+		resultModel[index] = &partner
+	}
+	return resultModel, result.Error
 }
