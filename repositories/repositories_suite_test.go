@@ -80,8 +80,7 @@ var _ = Describe("Repository functionality", Label("Repository"),func() {
 				}
 				repo.Create(ctx, &new)
 				_, err := repo.Create(ctx, &new)
-
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(Equal(domain.ErrDuplicateKey))
 			})
 		})
 	})

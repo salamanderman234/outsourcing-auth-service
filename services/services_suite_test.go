@@ -49,28 +49,28 @@ var _ = Describe("Service test", Label("Service"), func() {
 			exampleName = "test"
 			examplePassword = "password"
 			partner = entity.PartnerEntity{
-				Name: &exampleName,
-				Email: &exampleEmail,
-				Password: &examplePassword,
+				Name: exampleName,
+				Email: exampleEmail,
+				Password: examplePassword,
 			}
 			invalidPartner = entity.PartnerEntity{
-				Name: &exampleName,
-				Password: &examplePassword,
+				Name: exampleName,
+				Password: examplePassword,
 			}
 		})
 	
 		Describe("CrudService.Create()", func () {
 			When("given correct entity ", func () {
 				It("should return result", func (ctx SpecContext) {
-					result, err := crudService.Create(ctx, &partner)
+					result, err := crudService.Create(ctx, &partner, &partner)
 					obj := result.(*entity.PartnerEntity)
-					Expect(*obj.Email).To(Equal(exampleEmail))
+					Expect(obj.Email).To(Equal(exampleEmail))
 					Expect(err).To(BeNil())
 				})
 			})
 			When("given incorrect entity (missing required field)", func () {
 				It("should return result", func (ctx SpecContext) {
-					_, err := crudService.Create(ctx, &invalidPartner)
+					_, err := crudService.Create(ctx, &invalidPartner, &partner)
 					Expect(err).ToNot(BeNil())
 				})
 			})
@@ -79,9 +79,9 @@ var _ = Describe("Service test", Label("Service"), func() {
 			When("given query with existed data", func () {
 				It("should return result", func (ctx SpecContext) {
 					exampleQuery := entity.PartnerEntity {
-						Name: &exampleName,
+						Name: exampleName,
 					}
-					result, err := crudService.Get(ctx, &exampleQuery)
+					result, err := crudService.Get(ctx, &exampleQuery , &partner)
 					Expect(len(result)).ToNot(Equal(0))
 					Expect(err).To(BeNil())
 				})
@@ -90,9 +90,9 @@ var _ = Describe("Service test", Label("Service"), func() {
 				It("should not return any result", func (ctx SpecContext) {
 					notExistedName := "fjasldfjaofhioldsfhkhf"
 					exampleQuery := entity.PartnerEntity {
-						Name: &notExistedName,
+						Name: notExistedName,
 					}
-					result, err := crudService.Get(ctx, &exampleQuery)
+					result, err := crudService.Get(ctx, &exampleQuery, &partner)
 					fmt.Print(result)
 					Expect(len(result)).To(Equal(0))
 					Expect(err).To(Equal(domain.ErrRecordNotFound))
@@ -104,14 +104,14 @@ var _ = Describe("Service test", Label("Service"), func() {
 			When("given query with existed id", func () {
 				It("should return result", func (ctx SpecContext) {
 					group := entity.PartnerEntity {}
-					_, err := crudService.Find(ctx, 1, &group)
+					_, err := crudService.Find(ctx, 1, &group, &partner)
 					Expect(err).To(BeNil())
 				})
 			})
 			When("given query with not existed id", func () {
 				It("should not return any result", func (ctx SpecContext) {
 					group := entity.PartnerEntity {}
-					_, err := crudService.Find(ctx, 8878, &group)
+					_, err := crudService.Find(ctx, 8878, &group, &partner)
 					Expect(err).To(Equal(domain.ErrRecordNotFound))
 				})
 			})
@@ -121,17 +121,17 @@ var _ = Describe("Service test", Label("Service"), func() {
 				It("should return result", func (ctx SpecContext) {
 					testName := "Change from crud service"
 					updateField := entity.PartnerEntity {
-						Name: &testName,
+						Name: testName,
 					}
-					result, err := crudService.Update(ctx, 1, &updateField)
-					Expect(*result.(*entity.PartnerEntity).Name).To(Equal(testName))
+					result, err := crudService.Update(ctx, 1, &updateField, &partner)
+					Expect(result.(*entity.PartnerEntity).Name).To(Equal(testName))
 					Expect(err).To(BeNil())
 				})
 			})
 			When("updating non existed data", func () {
 				It("should not return any result", func (ctx SpecContext) {
 					updatedFields := entity.PartnerEntity {}
-					_, err := crudService.Find(ctx, 8878, &updatedFields)
+					_, err := crudService.Find(ctx, 8878, &updatedFields, &partner)
 					Expect(err).To(Equal(domain.ErrRecordNotFound))
 				})
 			})
@@ -143,19 +143,19 @@ var _ = Describe("Service test", Label("Service"), func() {
 					updatedFields := entity.PartnerEntity {}
 					exampleNewMail := helper.GenerateRandomString(11)
 					newData := entity.PartnerEntity{
-						Email: &exampleNewMail,
-						Name: &exampleName,
-						Password: &examplePassword,
+						Email: exampleNewMail,
+						Name: exampleName,
+						Password: examplePassword,
 					}
-					data, _ := crudService.Create(ctx, &newData)
-					_, err := crudService.Delete(ctx, data.(*entity.PartnerEntity).ID, &updatedFields)
+					data, _ := crudService.Create(ctx, &newData, &partner)
+					_, err := crudService.Delete(ctx, data.(*entity.PartnerEntity).ID, &updatedFields, &partner)
 					Expect(err).To(BeNil())
 				})
 			})
 			When("deleting non existed data", func () {
 				It("should not success deleting any data", func (ctx SpecContext) {
 					updatedFields := entity.PartnerEntity {}
-					_, err := crudService.Delete(ctx, 887899, &updatedFields)
+					_, err := crudService.Delete(ctx, 887899, &updatedFields, &partner)
 					Expect(err).ToNot(BeNil())
 				})
 			})
@@ -184,13 +184,13 @@ var _ = Describe("Service test", Label("Service"), func() {
 			// 	Password: &passCred,
 			// }
 			invalidCreds = &entity.PartnerEntity{
-				Email: &emailCred,
+				Email: emailCred,
 			}
 			invalidPass := "fdsfds"
 			invalidEmail := "notfound@gmail.com"
 			wrongCreds = &entity.PartnerEntity{
-				Email: &invalidEmail,
-				Password: &invalidPass,
+				Email: invalidEmail,
+				Password:  invalidPass,
 			}
 		})
 	
@@ -198,12 +198,12 @@ var _ = Describe("Service test", Label("Service"), func() {
 			When("using valid data (with required field)", func() {
 				It("should be registered successfully", func(ctx SpecContext) {
 					exampleName := "asiap"
-					data := &entity.PartnerEntity{
-						Email: &emailCred,
-						Password: &passCred,
-						Name: &exampleName,
+					data :=  entity.PartnerEntity{
+						Email: emailCred,
+						Password: passCred,
+						Name: exampleName,
 					}
-					token, err := authService.Register(ctx, data)
+					token, err := authService.Register(ctx, &data)
 					Expect(err).To(BeNil())
 					_, err = helper.VerifyToken(token.Access)
 					Expect(err).To(BeNil())
@@ -215,8 +215,8 @@ var _ = Describe("Service test", Label("Service"), func() {
 				It("should be not registered successfully", func(ctx SpecContext) {
 					exampleName := "asiap"
 					data := &entity.PartnerEntity{
-						Email: &emailCred,
-						Name: &exampleName,
+						Email: emailCred,
+						Name: exampleName,
 					}
 					token, err := authService.Register(ctx, data)
 					Expect(err).ToNot(BeNil())
@@ -233,15 +233,15 @@ var _ = Describe("Service test", Label("Service"), func() {
 					exampleName := "new user from login"
 					examplePassword := "password"
 					newData := entity.PartnerEntity{
-						Email: &exampleNewMail,
-						Name: &exampleName,
-						Password: &examplePassword,
+						Email: exampleNewMail,
+						Name: exampleName,
+						Password: examplePassword,
 					}
 					tokens, _ := authService.Register(ctx, &newData)
 					claims, _ := helper.VerifyToken(tokens.Access)
 					creds := entity.PartnerEntity {
-						Email: claims.JWTPayload.Username,
-						Password: &examplePassword,
+						Email: *claims.JWTPayload.Username,
+						Password: examplePassword,
 					}
 					token, err := authService.Login(ctx, &creds)
 					Expect(err).To(BeNil())
@@ -351,9 +351,9 @@ var _ = Describe("Service test", Label("Service"), func() {
 				avatar := "//"
 				role := "partner"
 				data := entity.PartnerEntity{
-					Email: &email,
-					Password: &password,
-					Name: &name,
+					Email: email,
+					Password: password,
+					Name: name,
 				}
 				tokens, err := authService.Register(ctx, &data)
 				if err != nil {

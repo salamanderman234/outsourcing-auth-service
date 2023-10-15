@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/go-sql-driver/mysql"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	"gorm.io/gorm"
 )
@@ -19,9 +20,14 @@ func NewRepository(client *gorm.DB) domain.Repository {
 }
 
 func(r repository) Create(ctx context.Context, data domain.Model) (domain.Model,error)  {
-	obj := data
+	obj := data.GetFillable()
 	result := r.client.WithContext(ctx).Create(obj)
-	return obj, result.Error
+	err := result.Error
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+		err = domain.ErrDuplicateKey
+	}
+	return obj, err
 }	
 
 func(r repository) Get(ctx context.Context, query domain.SearchQueryFunc) ([]domain.Model, error) {
@@ -39,7 +45,7 @@ func(r repository) FindById(ctx context.Context, id uint, target domain.Model) (
 }
 
 func(r repository) Update(ctx context.Context, id uint, data domain.Model) (domain.Model, int, error) {
-	obj := data
+	obj := data.GetFillable()
 	result := r.client.WithContext(ctx).
 		Model(data).
 		Where("id = ?", id).
@@ -47,6 +53,10 @@ func(r repository) Update(ctx context.Context, id uint, data domain.Model) (doma
 	err := result.Error
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		err = domain.ErrRecordNotFound
+	}
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+		err = domain.ErrDuplicateKey
 	}
 	return obj, int(result.RowsAffected),err
 }

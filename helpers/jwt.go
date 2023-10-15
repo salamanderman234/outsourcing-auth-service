@@ -39,7 +39,7 @@ func CreatePairTokenFromModel(data domain.AuthModel, group string) (domain.AuthT
 		&avatarField, 
 		&groupField, 
 		idField, 
-		domain.TokenExpiresAt,
+		time.Now().Add(time.Duration(30) * time.Minute),
 	)
 	if err != nil {
 		return pairs, err
@@ -50,7 +50,7 @@ func CreatePairTokenFromModel(data domain.AuthModel, group string) (domain.AuthT
 		nil, 
 		&groupField, 
 		idField, 
-		domain.TokenRefreshExpiresAt,
+		time.Now().Add(time.Duration(72) * time.Hour),
 	)
 	if err != nil {
 		return pairs, err

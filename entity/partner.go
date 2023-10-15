@@ -1,17 +1,38 @@
 package entity
 
 import (
+	"context"
+
+	"github.com/asaskevich/govalidator"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	model "github.com/salamanderman234/outsourcing-auth-profile-service/models"
 )
 
 type PartnerEntity struct {
-	ID 		 uint    `json:"id" query:"id"`
-	Email    *string `json:"email" query:"email"`
-	Password *string `json:"password" query:"password"`
-	Name     *string `json:"name" query:"name"`
+	ID 		 uint    `json:"id,omitempty" query:"id"`
+	Email    string `json:"email" query:"email" valid:"required~email is required,email~must be a valid email,length(0|255)~email length must be less than 256 character"`
+	Password string `json:"password,omitempty" query:"password" valid:"required~password is required,length(8|32)~password length must be 8-32 character"`
+	Name     string `json:"name" query:"name" valid:"required~name is required ,length(0|255)~name length must be less than 256 character"`
 	Avatar   string  `json:"avatar" query:"avatar"`
-	About    string  `json:"about" query:"about"`
+	About    string  `json:"about" query:"about" valid:"length(0|255)~about length must be less than 256 character"`
+}
+
+func (p *PartnerEntity) ResetField() {
+	p.ID = 0
+	p.Email = ""
+	p.Password = ""
+	p.Name = ""
+	p.Avatar = ""
+	p.About = ""
+}
+
+func (p *PartnerEntity) GetUsernameFieldName() string {
+	return "email"
+}
+
+func (p *PartnerEntity) GetViewable() domain.Entity {
+	p.Password = ""
+	return p
 }
 
 func (p *PartnerEntity) GetCorrespondingModel() domain.Model {
@@ -24,15 +45,20 @@ func (p *PartnerEntity) GetCorrespondingAuthModel() domain.AuthModel {
 func (p *PartnerEntity) IsEntity() bool {
 	return true
 }
-func (p *PartnerEntity) CheckRequiredRegisterField() bool {
-	if p.Email != nil && p.Name != nil && p.Password != nil {
-		return true
-	}
-	return false
+
+func (p PartnerEntity) RegisterCredsValidate(ctx context.Context) error {
+	_, err := govalidator.ValidateStruct(p)
+	return err
 }
-func (p *PartnerEntity) CheckRequiredLoginField() bool {
-	if p.Email != nil && p.Password != nil {
-		return true
+
+func (p PartnerEntity) LoginCredsValidate(ctx context.Context) error {
+	obj := struct{
+		Email string `valid:"required~email is required,email~must be a valid email,length(0|255)~email length must be less than 256 character"`
+		Password string `valid:"required~password is required"`
+	}{
+		Email: p.Email,
+		Password: p.Password,
 	}
-	return false
+	_, err := govalidator.ValidateStruct(obj)
+	return err
 }

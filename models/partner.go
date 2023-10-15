@@ -20,8 +20,50 @@ func(p *Partner) IsModel() bool {
 	return true
 }
 
+func (p *Partner) GetCrudPolicies(action string, user domain.AuthEntity) bool {
+	users := []domain.AuthModel{}
+	valid := false
+	userCheck := func () {
+		for _, userModel := range users {
+			if user.GetCorrespondingAuthModel().GetGroupName() == userModel.GetGroupName() {
+				valid = true
+			}
+		}
+	}
+	if action == "create" {
+		userCheck()
+	} else if action == "update" {
+		if user.GetCorrespondingAuthModel().GetID() != p.ID {
+			return false
+		}
+		userCheck()
+	} else if action == "get" {
+		userCheck()
+	} else if action == "find" {
+		if user.GetCorrespondingAuthModel().GetID() != p.ID {
+			return false
+		}
+		userCheck()
+	}else if action == "delete" {
+		userCheck()
+	}
+	return valid
+}
+
+func (p *Partner) GetFillable() domain.Model {
+	p.ID = 0
+	return p
+}
+
+func (p *Partner) GetGroupName() string {
+	return "partner"
+}
+
 func(p *Partner) GetID() uint {
 	return p.ID
+}
+func(p *Partner) SetID(id uint) {
+	p.ID = id
 }
 
 func(p *Partner) GetUsernameField() string {
@@ -60,10 +102,15 @@ func (p *Partner) SetEmptyID() {
 }
 
 func(r *Partner) SearchQuery(ctx context.Context, client *gorm.DB) ([]domain.Model, error) {
+	query := struct {
+		Email string 
+	} {
+		Email: *r.Email,
+	}
 	partners := []Partner{}
 	result := client.WithContext(ctx).
 		Model(r).
-		Where(r).
+		Where(query).
 		Find(&partners)
 	if len(partners) <= 0 {
 		return nil, domain.ErrRecordNotFound

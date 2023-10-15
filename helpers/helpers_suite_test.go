@@ -2,10 +2,10 @@ package helper_test
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 	model "github.com/salamanderman234/outsourcing-auth-profile-service/models"
@@ -29,7 +29,7 @@ var _ = Describe("helper function functionality", func() {
 				Name: &exampleName,
 			}
 			examplePartnerEntity = entity.PartnerEntity{
-				Name: &exampleName,
+				Name: exampleName,
 			}
 		})
 
@@ -81,7 +81,7 @@ var _ = Describe("helper function functionality", func() {
 		})
 		When("given correct data", func() {
 			It("should return valid token", func() {
-				token, err := helper.CreateToken(&email, &username, &avatar, &role, id, domain.TokenExpiresAt)
+				token, err := helper.CreateToken(&email, &username, &avatar, &role, id, time.Now().Add(time.Duration(30) * time.Minute))
 				Expect(err).To(BeNil())
 				payload, ok := helper.VerifyToken(token)
 				Expect(ok).To(BeNil())
