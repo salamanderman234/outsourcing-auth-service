@@ -11,12 +11,12 @@ import (
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 )
 
-func tokenCheck(ctx echo.Context) (domain.JWTClaims, entity.BaseResponse) {
+func tokenCheck(ctx echo.Context) (domain.JWTClaims, bool ,entity.BaseResponse) {
 	token := ctx.Request().Header.Get("Authorization")
 	respStatus := http.StatusUnauthorized
 	respType := domain.ResponseTokenErr
 	respMessage := ""
-	respData := []any{}
+	respData := entity.BaseResponseDetail{}
 
 	sendResp := func () entity.BaseResponse {
 		return helper.CreateBaseResponse(respStatus, respType, respMessage, respData)
@@ -24,18 +24,18 @@ func tokenCheck(ctx echo.Context) (domain.JWTClaims, entity.BaseResponse) {
 
 	if token == "" {
 		respMessage = "authorization token is required"
-		return domain.JWTClaims{}, sendResp()
+		return domain.JWTClaims{}, false ,sendResp()
 	}
 	claims, err := helper.VerifyToken(token)
 	if errors.Is(err, domain.ErrTokenNotValid) {
 		respMessage = "authorization token is not valid"
-		return claims, sendResp()
+		return claims, false ,sendResp()
 	}
 	if errors.Is(err, domain.ErrTokenIsExpired) {
 		respMessage = "authorization token is expired"
-		return claims, sendResp()
+		return claims, false ,sendResp()
 	}
-	return claims, entity.BaseResponse{}
+	return claims, true, entity.BaseResponse{}
 }
 
 func WithToken(authEntity domain.AuthEntity) echo.MiddlewareFunc {
@@ -44,13 +44,13 @@ func WithToken(authEntity domain.AuthEntity) echo.MiddlewareFunc {
 			respStatus := http.StatusUnauthorized
 			respType := domain.ResponseTokenErr
 			respMessage := ""
-			respData := []any{}
+			respData := entity.BaseResponseDetail{}
 		
 			sendResp := func () error {
 				return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
 			}
-			claims, errResponse := tokenCheck(ctx)
-			if errResponse != (entity.BaseResponse{}) {
+			claims, ok ,errResponse := tokenCheck(ctx)
+			if !ok {
 				return ctx.JSON(errResponse.Status, errResponse)
 			}
 			group := claims.Group
@@ -74,7 +74,7 @@ func WithoutToken()echo.MiddlewareFunc {
 			respStatus := http.StatusUnauthorized
 			respType := domain.ResponseTokenErr
 			respMessage := ""
-			respData := []any{}
+			respData := entity.BaseResponseDetail{}
 		
 			sendResp := func () error {
 				return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)

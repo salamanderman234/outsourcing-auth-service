@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
+	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 )
 
@@ -34,7 +35,7 @@ func (c *crudViewSet) SetEntity(entity domain.Entity) {
 func (c *crudViewSet) Create(ctx echo.Context) error {
 	data := c.entity
 	requestContext := ctx.Request().Context()
-	responseData := []any{}
+	responseData := entity.BaseResponseDetail{}
 	responseStatus := http.StatusCreated
 	responseMessage := "created"
 
@@ -65,9 +66,7 @@ func (c *crudViewSet) Create(ctx echo.Context) error {
 		responseMessage = "someting went wrong"
 		return sendResponse()
 	}
-	responseData = []any {
-		new,
-	}
+	responseData.Datas = new
 	return sendResponse()
 }
 func (c *crudViewSet) Get(ctx echo.Context) error {

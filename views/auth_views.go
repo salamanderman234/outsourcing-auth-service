@@ -10,6 +10,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
+	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 	validator "github.com/salamanderman234/outsourcing-auth-profile-service/validators"
 )
@@ -45,13 +46,13 @@ func (a *authViewset) Login(ctx echo.Context) error {
 	a.resetField()
 	creds := a.group
 	requestContext := ctx.Request().Context()
-	respData := []any{}
+	respData := entity.BaseResponseDetail{}
 	respType := domain.ResponseSuccess
 	respStatus := http.StatusOK
 	respMessage := "login success"
 	
 	sendResponse := func () error {
-		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData...)
+		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
 	}
 
 	if err := ctx.Bind(&creds); err != nil {
@@ -65,9 +66,7 @@ func (a *authViewset) Login(ctx echo.Context) error {
 		respStatus = http.StatusBadRequest
 		respType = domain.ResponseValidationErr
 		respMessage = "request data does not comply with the rules"
-		respData = []any{
-			errs,
-		}
+		respData.Errors = errs
 		return sendResponse()
 	}
 	// calling service
@@ -79,9 +78,8 @@ func (a *authViewset) Login(ctx echo.Context) error {
 			govalidator.Error{Name: usernameField, Validator: "credentials", Err: textErr ,CustomErrorMessageExists: true,},
 			govalidator.Error{Name: "password", Validator: "credentials", Err: textErr ,CustomErrorMessageExists: true,},
 		}
-		respData = []any {
-			validator.GenerateFieldValidationError(errs),
-		}
+
+		respData.Errors = validator.GenerateFieldValidationError(errs)
 		respStatus = http.StatusUnauthorized
 		respType = domain.ResponseUnauthorizeErr
 		respMessage = textErr.Error()
@@ -102,7 +100,7 @@ func (a *authViewset) Login(ctx echo.Context) error {
 	}
 	ctx.SetCookie(&refreshCookie)
 	// creating response contain access token
-	respData = []any{
+	respData.Datas = []any{
 		map[string]string{"token" : tokens.Access},
 	}
 	return sendResponse()
@@ -111,7 +109,7 @@ func (a *authViewset) Register(ctx echo.Context) error {
 	a.resetField()
 	creds := a.group
 	requestContext := ctx.Request().Context()
-	var respData any
+	var respData entity.BaseResponseDetail
 	respType := domain.ResponseSuccess
 	respStatus := http.StatusOK
 	respMessage := "register success"
@@ -132,9 +130,7 @@ func (a *authViewset) Register(ctx echo.Context) error {
 		respStatus = http.StatusBadRequest
 		respType = domain.ResponseValidationErr
 		respMessage = "request data does not comply with the rules"
-		respData = []any{
-			errs,
-		}
+		respData.Errors = errs
 		return sendResponse()
 	}
 	// calling service
@@ -160,20 +156,20 @@ func (a *authViewset) Register(ctx echo.Context) error {
 	}
 	ctx.SetCookie(&refreshCookie)
 	// creating response contain access token
-	respData = []any{
+	respData.Datas = []any{
 		map[string]string{"token" : tokens.Access},
 	}
 	return sendResponse()
 }
 func (a *authViewset) Verify(ctx echo.Context) error {
 	a.resetField()
-	respData := []any{}
+	respData := entity.BaseResponseDetail{}
 	respType := domain.ResponseSuccess
 	respStatus := http.StatusOK
 	respMessage := "user verified"
 	
 	sendResponse := func () error {
-		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData...)
+		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
 	}
 
 	userClaims := ctx.Get("user")
@@ -192,7 +188,7 @@ func (a *authViewset) Verify(ctx echo.Context) error {
 		Group: strings.ToLower(*userClaims.(domain.JWTClaims).Group),
 		Avatar: *userClaims.(domain.JWTClaims).Avatar,
 	}
-	respData = []any{
+	respData.Datas = []any {
 		user,
 	}
 	return sendResponse()
@@ -201,13 +197,13 @@ func (a *authViewset) Refresh(ctx echo.Context) error {
 	a.resetField()
 	group := a.group
 	requestContext := ctx.Request().Context()
-	respData := []any{}
+	respData := entity.BaseResponseDetail{}
 	respType := domain.ResponseSuccess
 	respStatus := http.StatusOK
 	respMessage := "access token refreshed"
 	
 	sendResponse := func () error {
-		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData...)
+		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
 	}
 
 	cookie, err := ctx.Cookie(domain.TokenRefreshName)
@@ -245,7 +241,7 @@ func (a *authViewset) Refresh(ctx echo.Context) error {
 	}
 	ctx.SetCookie(&refreshCookie)
 	// creating response contain access token
-	respData = []any{
+	respData.Datas = []any{
 		map[string]string{"token" : tokens.Access},
 	}
 	return sendResponse()

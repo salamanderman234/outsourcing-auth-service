@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
+	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 )
 
@@ -14,7 +15,7 @@ func OnlyUsersDefined(authEntity ...domain.AuthEntity) echo.MiddlewareFunc {
 			respStatus := http.StatusUnauthorized
 			respType := domain.ResponseTokenErr
 			respMessage := ""
-			respData := []any{}
+			respData := entity.BaseResponseDetail{}
 
 			sendResp := func() error {
 				return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)

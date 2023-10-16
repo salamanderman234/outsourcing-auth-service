@@ -17,7 +17,10 @@ func main() {
 	// router
 	router := echo.New()
 	// connect database
-	client, _ := config.ConnectDatabase()
+	client, err := config.ConnectDatabase()
+	if err != nil {
+		panic(err)
+	}
 	// create repo
 	repo := repository.NewRepository(client)
 	// create service
