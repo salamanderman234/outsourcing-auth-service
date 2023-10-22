@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"fmt"
 
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	"gorm.io/gorm"
@@ -20,8 +21,20 @@ func(p *Partner) IsModel() bool {
 	return true
 }
 
+func (p *Partner) GetFillable() domain.Model {
+	p.ID = 0
+	return p
+}
+
+func (p *Partner) GetGroupName() string {
+	return "partner"
+}
+
 func(p *Partner) GetID() uint {
 	return p.ID
+}
+func(p *Partner) SetID(id uint) {
+	p.ID = id
 }
 
 func(p *Partner) GetUsernameField() string {
@@ -60,17 +73,25 @@ func (p *Partner) SetEmptyID() {
 }
 
 func(r *Partner) SearchQuery(ctx context.Context, client *gorm.DB) ([]domain.Model, error) {
+	query := struct {
+		Email string 
+		Name string
+	} {
+		Email: *r.Email,
+		Name: *r.Name,
+	}
 	partners := []Partner{}
 	result := client.WithContext(ctx).
 		Model(r).
-		Where(r).
+		Where("email LIKE ?", fmt.Sprintf("%%%s%%", query.Email)).
+		Where("name LIKE ?", fmt.Sprintf("%%%s%%", query.Name)).
 		Find(&partners)
 	if len(partners) <= 0 {
 		return nil, domain.ErrRecordNotFound
 	}
-	resultModel := make([]domain.Model, len(partners))
-	for index, partner := range partners {
-		resultModel[index] = &partner
+	resultModels := make([]domain.Model, len(partners))
+	for index := range resultModels {
+		resultModels[index] = &partners[index]
 	}
-	return resultModel, result.Error
+	return resultModels, result.Error
 }
