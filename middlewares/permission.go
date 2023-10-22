@@ -5,7 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
-	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
+	entity "github.com/salamanderman234/outsourcing-auth-profile-service/entities"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 )
 

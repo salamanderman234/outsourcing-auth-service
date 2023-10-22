@@ -1,9 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"html/template"
+	"path"
 	"strconv"
+	"time"
 
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
@@ -112,4 +116,66 @@ func(a *authService) RenewToken(ctx context.Context, refreshToken string, group 
 		return authTokens, domain.ErrCreateToken
 	}
 	return authTokens, nil
+}
+
+func (a *authService) GenerateResetPasswordToken(ctx context.Context, email string, obj domain.AuthEntity) (error) {
+	model := obj.GetCorrespondingAuthModel()
+	err := helper.ConvertEntityToModel(obj, model)
+	if err != nil {
+		return domain.ErrConversionDataType
+	}
+	model.SetUsernameField(&email)
+	result, err := a.repo.Get(ctx, model.SearchQuery)
+	if err != nil {
+		return nil
+	}
+	password := result[0].(domain.AuthModel).GetPasswordField()	
+	group := model.GetGroupName()
+	token, err  := helper.CreateResetPasswordToken(&group, &email, password, time.Now().Add(time.Duration(30) * time.Minute))
+	if err != nil {
+		return domain.ErrCreateToken
+	}
+	templatePath := path.Join("templates", "reset_password.html")
+	tmplt, err := template.ParseFiles(templatePath)
+	if err != nil {
+		return err
+	}
+	data := map[string]string{
+		"token": token,
+		"email": email,
+		"group": group,
+	}
+	var tpl bytes.Buffer
+	err = tmplt.Execute(&tpl, data)
+	body := tpl.String()
+	target := email
+	subject := "Change password"
+	go helper.SendMail(body, subject, target)
+	return nil
+}
+
+func (a *authService) ResetPassword(ctx context.Context, token string, email string, newPassword string, obj domain.AuthEntity) error {
+	model := obj.GetCorrespondingAuthModel()
+	err := helper.ConvertEntityToModel(obj, model)
+	if err != nil {
+		return domain.ErrConversionDataType
+	}
+	model.SetUsernameField(&email)
+	result, err := a.repo.Get(ctx, model.SearchQuery)
+	if err != nil {
+		return err
+	}
+	password := result[0].(domain.AuthModel).GetPasswordField()	
+	_, err = helper.VerifyResetPasswordToken(token, password)
+	if err != nil {
+		return err
+	}
+	hashed, _ := bcrypt.GenerateFromPassword([]byte(newPassword),1)
+	hashedString := string(hashed)
+	model.SetPasswordField(&hashedString)
+	_, _, err = a.repo.Update(ctx, result[0].GetID(), model)
+	if err != nil {
+		return err
+	}
+	return nil
 }

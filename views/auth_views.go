@@ -10,9 +10,8 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
-	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
+	entity "github.com/salamanderman234/outsourcing-auth-profile-service/entities"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
-	validator "github.com/salamanderman234/outsourcing-auth-profile-service/validators"
 )
 
 type authViewset struct {
@@ -29,7 +28,7 @@ func NewAuthViewset(group domain.AuthEntity, authService domain.AuthService, cru
 	}
 }
 
-func(a *authViewset) resetField() {
+func(a *authViewset) ResetField() {
 	a.group.ResetField()
 }
 
@@ -43,34 +42,30 @@ func (a *authViewset) GetAuthService() domain.AuthService {
 	return a.authService
 }
 func (a *authViewset) Login(ctx echo.Context) error {
-	a.resetField()
-	creds := a.group
 	requestContext := ctx.Request().Context()
+	form := a.GetAuthEntity().FormLoginAction()
 	respData := entity.BaseResponseDetail{}
-	respType := domain.ResponseSuccess
 	respStatus := http.StatusOK
-	respMessage := "login success"
-	
-	sendResponse := func () error {
-		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
-	}
+	respType := domain.ResponseSuccess
+	respMessage := "ok"
+	var response error
+	defer func () {
+		response = helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
+	}()
 
-	if err := ctx.Bind(&creds); err != nil {
-		respStatus = http.StatusBadRequest
-		respType = domain.ResponseBadRequest
-		respMessage = "login credentials is required"
-		return sendResponse()
+	if err := ctx.Bind(form); err != nil {
+		fmt.Println(err)
+		respStatus, respType, respMessage = handleError(domain.ErrBindAndValidation)
+		return response
 	}
-	if err := creds.LoginCredsValidate(requestContext); err != nil {
-		errs := validator.GenerateFieldValidationError(err.(govalidator.Errors))
-		respStatus = http.StatusBadRequest
-		respType = domain.ResponseValidationErr
-		respMessage = "request data does not comply with the rules"
+	if err := validateForm(form); err != nil {
+		errs := helper.GenerateFieldValidationError(err.(govalidator.Errors))
+		respStatus, respType, respMessage = handleError(domain.ErrBindAndValidation)
 		respData.Errors = errs
-		return sendResponse()
+		return response
 	}
 	// calling service
-	tokens, err := a.authService.Login(requestContext, creds)
+	tokens, err := a.authService.Login(requestContext, form.GetCorrespondingAuthEntity())
 	if errors.Is(err, domain.ErrInvalidCreds) {
 		usernameField := a.group.GetUsernameFieldName()
 		textErr := errors.New(fmt.Sprintf("%s or password is wrong", usernameField))
@@ -79,17 +74,13 @@ func (a *authViewset) Login(ctx echo.Context) error {
 			govalidator.Error{Name: "password", Validator: "credentials", Err: textErr ,CustomErrorMessageExists: true,},
 		}
 
-		respData.Errors = validator.GenerateFieldValidationError(errs)
-		respStatus = http.StatusUnauthorized
-		respType = domain.ResponseUnauthorizeErr
-		respMessage = textErr.Error()
-		return sendResponse()
+		respData.Errors = helper.GenerateFieldValidationError(errs)
+		respStatus, respType, respMessage = handleError(domain.ErrInvalidCreds)
+		return response
 	} 
 	if err != nil {
-		respStatus = http.StatusInternalServerError
-		respType = domain.ResponseServerErr
-		respMessage = "something went wrong"
-		return sendResponse()
+		respStatus, respType, respMessage = handleError(err)
+		return response
 	}
 	// creating refresh cookie
 	refreshCookie := http.Cookie {
@@ -103,49 +94,37 @@ func (a *authViewset) Login(ctx echo.Context) error {
 	respData.Datas = []any{
 		map[string]string{"token" : tokens.Access},
 	}
-	return sendResponse()
+	return response
 }
 func (a *authViewset) Register(ctx echo.Context) error {
-	a.resetField()
-	creds := a.group
 	requestContext := ctx.Request().Context()
-	var respData entity.BaseResponseDetail
+	form := a.GetAuthEntity().FormRegisterAction()
+	respData := entity.BaseResponseDetail{}
+	respStatus := http.StatusCreated
 	respType := domain.ResponseSuccess
-	respStatus := http.StatusOK
-	respMessage := "register success"
-	
-	sendResponse := func () error {
-		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
-	}
+	respMessage := "created"
 
-	if err := ctx.Bind(&creds); err != nil {
-		respStatus = http.StatusBadRequest
-		respType = domain.ResponseBadRequest
-		respMessage = "register data is required"
-		return sendResponse()
+	var response error
+	defer func () {
+		response = helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
+	}()
+
+	if err := ctx.Bind(form); err != nil {
+		fmt.Println(err)
+		respStatus, respType, respMessage = handleError(domain.ErrBindAndValidation)
+		return response
 	}
-	// creds validate
-	if err := creds.RegisterCredsValidate(requestContext); err != nil {
-		errs := validator.GenerateFieldValidationError(err.(govalidator.Errors))
-		respStatus = http.StatusBadRequest
-		respType = domain.ResponseValidationErr
-		respMessage = "request data does not comply with the rules"
+	if err := validateForm(form); err != nil {
+		errs := helper.GenerateFieldValidationError(err.(govalidator.Errors))
+		respStatus, respType, respMessage = handleError(domain.ErrBindAndValidation)
 		respData.Errors = errs
-		return sendResponse()
+		return response
 	}
 	// calling service
-	tokens, err := a.authService.Register(requestContext, creds)
-	if errors.Is(err, domain.ErrDuplicateKey) {
-		respStatus = http.StatusConflict
-		respType = domain.ResponseDuplicateEntries
-		respMessage = "user already exists"
-		return sendResponse()
-	}
+	tokens, err := a.authService.Register(requestContext, form.GetCorrespondingAuthEntity())
 	if err != nil {
-		respStatus = http.StatusInternalServerError
-		respType = domain.ResponseServerErr
-		respMessage = "something went wrong"
-		return sendResponse()
+		respStatus, respType, respMessage = handleError(err)
+		return response
 	}
 	// creating refresh cookie
 	refreshCookie := http.Cookie {
@@ -159,13 +138,13 @@ func (a *authViewset) Register(ctx echo.Context) error {
 	respData.Datas = []any{
 		map[string]string{"token" : tokens.Access},
 	}
-	return sendResponse()
+	return response
 }
 func (a *authViewset) Verify(ctx echo.Context) error {
-	a.resetField()
+	a.ResetField()
 	respData := entity.BaseResponseDetail{}
-	respType := domain.ResponseSuccess
 	respStatus := http.StatusOK
+	respType := domain.ResponseSuccess
 	respMessage := "user verified"
 	
 	sendResponse := func () error {
@@ -194,43 +173,29 @@ func (a *authViewset) Verify(ctx echo.Context) error {
 	return sendResponse()
 }
 func (a *authViewset) Refresh(ctx echo.Context) error {
-	a.resetField()
-	group := a.group
+	a.ResetField()
+	group := a.GetAuthEntity()
 	requestContext := ctx.Request().Context()
 	respData := entity.BaseResponseDetail{}
 	respType := domain.ResponseSuccess
 	respStatus := http.StatusOK
 	respMessage := "access token refreshed"
 	
-	sendResponse := func () error {
-		return helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
-	}
+	var response error
+	defer func () {
+		response = helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
+	}()
 
 	cookie, err := ctx.Cookie(domain.TokenRefreshName)
 	if err != nil {
-		respStatus = http.StatusUnauthorized
-		respType = domain.ResponseTokenErr
-		respMessage = "refresh token is required"
-		return sendResponse()
+		respStatus, respType, respMessage = handleError(err)
+		return response
 	}
 	token := cookie.Value
 	tokens, err := a.authService.RenewToken(requestContext, token, group)
-	if errors.Is(err, domain.ErrTokenNotValid) {
-		respType = domain.ResponseTokenErr
-		respMessage = "refresh token is invalid"
-		return sendResponse()
-	}
-	if errors.Is(err, domain.ErrTokenIsExpired) {
-		respStatus = http.StatusUnauthorized
-		respType = domain.ResponseTokenErr
-		respMessage = "refresh token is expired"
-		return sendResponse()
-	}
 	if err != nil {
-		respStatus = http.StatusInternalServerError
-		respType = domain.ResponseTokenErr
-		respMessage = "something went wrong"
-		return sendResponse()
+		respStatus, respType, respMessage = handleError(err)
+		return response
 	}
 	// creating refresh cookie
 	refreshCookie := http.Cookie {
@@ -244,5 +209,72 @@ func (a *authViewset) Refresh(ctx echo.Context) error {
 	respData.Datas = []any{
 		map[string]string{"token" : tokens.Access},
 	}
-	return sendResponse()
+	return response
+}
+
+func (a *authViewset) CreateResetPasswordToken(ctx echo.Context) error {
+	a.ResetField()
+	requestContext := ctx.Request().Context()
+	respData := entity.BaseResponseDetail{}
+	respType := domain.ResponseSuccess
+	respStatus := http.StatusOK
+	respMessage := "reset password token has been sent to requested email"
+	
+	var response error
+	defer func () {
+		response = helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
+	}()
+	body := struct {
+		Email string `json:"email" valid:"required~email is required"`
+	}{}
+	if err := ctx.Bind(&body); err != nil {
+		respStatus, respType, respMessage = handleError(err)
+		return response
+	}
+	if err := validateForm(body); err != nil {
+		errs := helper.GenerateFieldValidationError(err.(govalidator.Errors))
+		respStatus, respType, respMessage = handleError(domain.ErrBindAndValidation)
+		respData.Errors = errs
+		return response
+	}
+	err := a.authService.GenerateResetPasswordToken(requestContext,body.Email, a.GetAuthEntity())
+	if err != nil {
+		respStatus, respType, respMessage = handleError(err)
+		return response
+	}
+	return response
+}
+func (a *authViewset) ResetPassword(ctx echo.Context) error {
+	a.ResetField()
+	requestContext := ctx.Request().Context()
+	respData := entity.BaseResponseDetail{}
+	respType := domain.ResponseSuccess
+	respStatus := http.StatusOK
+	respMessage := "user password has been changed"
+	
+	var response error
+	defer func () {
+		response = helper.SendResponse(ctx, respStatus, respType, respMessage, respData)
+	}()
+	body := struct {
+		Token       string `form:"token" json:"token" valid:"required~reset token is required"`
+		NewPassword string `form:"password" json:"password" valid:"required~new password is required"`
+		Email string `form:"email" json:"email" valid:"required~email is required"`
+	}{}
+	if err := ctx.Bind(&body); err != nil {
+		respStatus, respType, respMessage = handleError(err)
+		return response
+	}
+	if err := validateForm(body); err != nil {
+		errs := helper.GenerateFieldValidationError(err.(govalidator.Errors))
+		respStatus, respType, respMessage = handleError(domain.ErrBindAndValidation)
+		respData.Errors = errs
+		return response
+	}
+	err := a.authService.ResetPassword(requestContext, body.Token, body.Email ,body.NewPassword, a.GetAuthEntity())
+	if err != nil {
+		respStatus, respType, respMessage = handleError(err)
+		return response
+	}
+	return response
 }

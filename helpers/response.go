@@ -2,7 +2,7 @@ package helper
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
+	entity "github.com/salamanderman234/outsourcing-auth-profile-service/entities"
 )
 
 func CreateBaseResponse(status int, messageType string, message string, datas entity.BaseResponseDetail) entity.BaseResponse {

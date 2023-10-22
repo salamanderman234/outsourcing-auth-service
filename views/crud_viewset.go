@@ -1,13 +1,11 @@
 package view
 
 import (
-	"errors"
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
-	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
-	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 )
 
 type crudViewSet struct {
@@ -22,6 +20,10 @@ func NewCrudViewSet(entity domain.Entity, service domain.CrudService) domain.Cru
 	}
 } 
 
+func (c *crudViewSet) ResetField() {
+	c.entity.ResetField()
+}
+
 func (c *crudViewSet) GetCrudService() domain.CrudService{
 	return c.crudService
 }
@@ -33,48 +35,55 @@ func (c *crudViewSet) SetEntity(entity domain.Entity) {
 	c.entity = entity
 }
 func (c *crudViewSet) Create(ctx echo.Context) error {
-	data := c.entity
-	requestContext := ctx.Request().Context()
-	responseData := entity.BaseResponseDetail{}
-	responseStatus := http.StatusCreated
-	responseMessage := "created"
-
-	sendResponse := func () error{
-		return ctx.JSON(responseStatus, helper.CreateBaseResponse(responseStatus, "test",responseMessage, responseData))
+	form := c.GetEntity().FormCreateAction()
+	successHandler := func() (int, string, string) {
+		return http.StatusCreated, domain.ResponseSuccess, "created"
 	}
-
-	if err := ctx.Bind(&data); err != nil {
-		responseStatus = http.StatusBadRequest
-		responseMessage = "request body is required"
-		return sendResponse()
+	mainHandler := func(ctx context.Context, data domain.Entity, user domain.JWTClaims) (any, error) {
+		return c.crudService.Create(ctx, data, user)
 	}
-	user := ctx.Get("user")
-	if user == nil {
-		responseStatus = http.StatusBadRequest
-		responseMessage = "request body is required"
-		return sendResponse()
-	}
-	userEntity := user.(domain.AuthEntity)
-	new, err := c.crudService.Create(requestContext, data, userEntity)
-	if errors.Is(err, domain.ErrDuplicateKey) {
-		responseStatus = http.StatusBadRequest
-		responseMessage = "duplicate entries"
-		return sendResponse()
-	}
-	if err != nil {
-		responseStatus = http.StatusInternalServerError
-		responseMessage = "someting went wrong"
-		return sendResponse()
-	}
-	responseData.Datas = new
-	return sendResponse()
+	return crudProcess(ctx, form, mainHandler, successHandler)
 }
+
 func (c *crudViewSet) Get(ctx echo.Context) error {
-	return nil
+	form := c.GetEntity().FormGetAction()
+	successHandler := func() (int, string, string) {
+		return http.StatusOK, domain.ResponseSuccess, "ok"
+	}
+	mainHandler := func(ctx context.Context, data domain.Entity, user domain.JWTClaims) (any, error) {
+		return c.crudService.Get(ctx, data, user)
+	}
+	return crudProcess(ctx, form, mainHandler, successHandler)
 }
 func (c *crudViewSet) Update(ctx echo.Context) error {
-	return nil
+	form := c.GetEntity().FormUpdateAction()
+	successHandler := func() (int, string, string) {
+		return http.StatusOK, domain.ResponseSuccess, "ok"
+	}
+	mainHandler := func(ctx context.Context, data domain.Entity, user domain.JWTClaims) (any, error) {
+		return c.crudService.Update(ctx, data.GetID(), data, user)
+	}
+	return crudProcess(ctx, form, mainHandler, successHandler)
+
+}
+func (c *crudViewSet) Find(ctx echo.Context) error {
+	form := c.GetEntity().FormFindAction()
+	successHandler := func() (int, string, string) {
+		return http.StatusOK, domain.ResponseSuccess, "ok"
+	}
+	mainHandler := func(ct context.Context, data domain.Entity, user domain.JWTClaims) (any, error) {
+		return c.crudService.Find(ct, data.GetID(), data, user)
+	}
+	return crudProcess(ctx, form, mainHandler, successHandler)
+
 }
 func (c *crudViewSet) Delete(ctx echo.Context) error {
-	return nil
+	form := c.GetEntity().FormDeleteAction()
+	successHandler := func() (int, string, string) {
+		return http.StatusOK, domain.ResponseSuccess, "ok"
+	}
+	mainHandler := func(ctx context.Context, data domain.Entity, user domain.JWTClaims) (any, error) {
+		return c.crudService.Delete(ctx, data.GetID(), data, user)
+	}
+	return crudProcess(ctx, form, mainHandler, successHandler)
 }

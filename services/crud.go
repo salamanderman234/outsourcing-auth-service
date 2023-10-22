@@ -17,10 +17,11 @@ func NewCrudService(repo domain.Repository) domain.CrudService {
 	}
 }
 
-func(c *crudService) Create(ctx context.Context, data domain.Entity, user domain.AuthEntity) (domain.Entity, error) {
+func(c *crudService) Create(ctx context.Context, data domain.Entity, user domain.JWTClaims) (domain.Entity, error) {
 	// convert into model
 	dataModel := data.GetCorrespondingModel()
-	if dataModel.GetCrudPolicies("create", user) {
+	dataModel.SetID(0)
+	if !data.GetPolicy().CreatePolicy(user) {
 		return nil, domain.ErrPolicies
 	}
 	err := helper.ConvertEntityToModel(data, dataModel)
@@ -37,17 +38,17 @@ func(c *crudService) Create(ctx context.Context, data domain.Entity, user domain
 	if err != nil {
 		return nil, domain.ErrConversionDataType
 	}
-	return data, nil
+	return data.GetViewable(), nil
 }
 
-func(c *crudService) Get(ctx context.Context, query domain.Entity, user domain.AuthEntity) ([]domain.Entity, error) {
+func(c *crudService) Get(ctx context.Context, query domain.Entity, user domain.JWTClaims) ([]domain.Entity, error) {
 	// convert to model
 	dataModel := query.GetCorrespondingModel()
 	err := helper.ConvertEntityToModel(query, dataModel)
 	if err != nil {
 		return nil, domain.ErrConversionDataType
 	}
-	if dataModel.GetCrudPolicies("get", user) {
+	if !query.GetPolicy().ReadPolicy(user) {
 		return nil, domain.ErrPolicies
 	}
 	// calling repository
@@ -59,21 +60,20 @@ func(c *crudService) Get(ctx context.Context, query domain.Entity, user domain.A
 	resultModels := result
 	entityResults := make([]domain.Entity, len(resultModels))
 	for index, resultModel := range resultModels {
-		temp := query
+		temp := query.NewObject()
 		err = helper.ConvertModelToEntity(resultModel, temp)
 		if err != nil {
 			return nil, domain.ErrConversionDataType
 		}
-		entityResults[index] = temp
+		entityResults[index] = temp.GetViewable()
 	}
 	return entityResults, nil
 }
 
-func(c *crudService) Find(ctx context.Context, id uint, group domain.Entity, user domain.AuthEntity) (domain.Entity, error) {
+func(c *crudService) Find(ctx context.Context, id uint, group domain.Entity, user domain.JWTClaims) (domain.Entity, error) {
 	// convert into model
 	dataModel := group.GetCorrespondingModel()
-	dataModel.SetID(id)
-	if dataModel.GetCrudPolicies("find", user) {
+	if !group.GetPolicy().FindPolicy(user, id) {
 		return nil, domain.ErrPolicies
 	}
 	err := helper.ConvertEntityToModel(group, dataModel)
@@ -90,14 +90,14 @@ func(c *crudService) Find(ctx context.Context, id uint, group domain.Entity, use
 	if err != nil {
 		return nil, domain.ErrConversionDataType
 	}
-	return group, nil
+	return group.GetViewable(), nil
 }
 
-func(c *crudService) Update(ctx context.Context, id uint, updatedFields domain.Entity, user domain.AuthEntity) (domain.Entity, error) {
+func(c *crudService) Update(ctx context.Context, id uint, updatedFields domain.Entity, user domain.JWTClaims) (domain.Entity, error) {
 	// convert to model
 	dataModel := updatedFields.GetCorrespondingModel()
-	dataModel.SetID(id)
-	if dataModel.GetCrudPolicies("update", user) {
+	dataModel.SetID(0)
+	if !updatedFields.GetPolicy().UpdatePolicy(user, id) {
 		return nil, domain.ErrPolicies
 	}
 	err := helper.ConvertEntityToModel(updatedFields, dataModel)
@@ -105,23 +105,26 @@ func(c *crudService) Update(ctx context.Context, id uint, updatedFields domain.E
 		return nil, domain.ErrConversionDataType
 	}
 	// calling repo
-	result, _ ,err := c.repo.Update(ctx, id, dataModel)
+	result, rowsAffected ,err := c.repo.Update(ctx, id, dataModel)
+	if rowsAffected == 0 {
+		return nil, domain.ErrRecordNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
 	// convert back to entity
-	err = helper.ConvertModelToEntity(result.(domain.Model), updatedFields)
+	resultEntity := updatedFields.NewObject()
+	err = helper.ConvertModelToEntity(result, resultEntity)
 	if err != nil {
 		return nil, domain.ErrConversionDataType
 	}
-	return updatedFields, nil
+	return resultEntity, nil
 }
 
-func(c *crudService) Delete(ctx context.Context, id uint, group domain.Entity, user domain.AuthEntity) (int, error) {
+func(c *crudService) Delete(ctx context.Context, id uint, group domain.Entity, user domain.JWTClaims) (int, error) {
 	// convert to model
 	dataModel := group.GetCorrespondingModel()
-	dataModel.SetID(id)
-	if dataModel.GetCrudPolicies("delete", user) {
+	if !group.GetPolicy().DeletePolicy(user, id) {
 		return 0, domain.ErrPolicies
 	}
 	err := helper.ConvertEntityToModel(group, dataModel)

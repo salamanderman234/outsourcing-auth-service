@@ -1,10 +1,10 @@
-package validator
+package helper
 
 import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
+	entity "github.com/salamanderman234/outsourcing-auth-profile-service/entities"
 )
 
 func GenerateFieldValidationError(errs []error) []entity.ErrorFieldDetail {

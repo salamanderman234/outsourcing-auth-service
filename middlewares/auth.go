@@ -7,7 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	domain "github.com/salamanderman234/outsourcing-auth-profile-service/domains"
-	"github.com/salamanderman234/outsourcing-auth-profile-service/entity"
+	entity "github.com/salamanderman234/outsourcing-auth-profile-service/entities"
 	helper "github.com/salamanderman234/outsourcing-auth-profile-service/helpers"
 )
 
@@ -38,7 +38,7 @@ func tokenCheck(ctx echo.Context) (domain.JWTClaims, bool ,entity.BaseResponse) 
 	return claims, true, entity.BaseResponse{}
 }
 
-func WithToken(authEntity domain.AuthEntity) echo.MiddlewareFunc {
+func WithToken(authEntity ...domain.AuthEntity) echo.MiddlewareFunc {
 	return func (next echo.HandlerFunc) echo.HandlerFunc {
 		return func (ctx echo.Context) error {
 			respStatus := http.StatusUnauthorized
@@ -53,15 +53,24 @@ func WithToken(authEntity domain.AuthEntity) echo.MiddlewareFunc {
 			if !ok {
 				return ctx.JSON(errResponse.Status, errResponse)
 			}
-			group := claims.Group
-			if claims.Group != nil {
-				if *group != authEntity.GetCorrespondingAuthModel().GetGroupName() {
-					respStatus = http.StatusForbidden
-					respType = domain.ResponseForbiddenErr
-					respMessage = fmt.Sprintf("user is not a %s",authEntity.GetCorrespondingAuthModel().GetGroupName())
-					return sendResp()
+			if len(authEntity) >= 1 {
+				group := claims.Group
+				if claims.Group != nil {
+					valid := false
+					for _, ent := range authEntity {
+						if *group == ent.GetCorrespondingAuthModel().GetGroupName() {
+							valid = true
+						}
+					}
+					if !valid {
+						respStatus = http.StatusForbidden
+						respType = domain.ResponseForbiddenErr
+						respMessage = fmt.Sprintf("user dont have access to this resource")
+						return sendResp()
+					}
 				}
 			}
+			ctx.Set("withUser", true)
 			ctx.Set("user", claims)
 			return next(ctx)
 		}
@@ -86,6 +95,15 @@ func WithoutToken()echo.MiddlewareFunc {
 				sendResp()
 			}
 			return next(ctx)
+		}
+	}
+}
+
+func SetWithUser(value bool) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set("withUser", value)
+			return next(c)
 		}
 	}
 }

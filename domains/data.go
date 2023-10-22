@@ -15,20 +15,43 @@ var (
 	TokenRefreshName = "refresh"
 )
 
+type Form interface {
+	GetCorrespodingEntity() Entity
+}
+
+type AuthForm interface {
+	GetCorrespondingAuthEntity() AuthEntity
+}
+
+type Policy interface {
+	CreatePolicy(user JWTClaims) bool
+	ReadPolicy(user JWTClaims) bool
+	FindPolicy(user JWTClaims, resourceId uint) bool
+	UpdatePolicy(user JWTClaims, resourceId uint) bool
+	DeletePolicy(user JWTClaims, resourceId uint) bool
+}
+
 type Model interface {
 	IsModel() bool
 	GetID() uint
 	SetID(id uint)
 	SearchQuery(ctx context.Context, client *gorm.DB) ([]Model, error)
 	GetFillable() Model
-	GetCrudPolicies(action string, user AuthEntity) bool
 }
 
 type Entity interface {
 	IsEntity() bool
+	GetID() uint
 	GetCorrespondingModel() Model
 	GetViewable() Entity
+	GetPolicy() Policy
 	ResetField()
+	NewObject() Entity
+	FormGetAction() Form
+	FormFindAction() Form
+	FormCreateAction() Form
+	FormUpdateAction() Form
+	FormDeleteAction() Form
 }
 
 type AuthModel interface {	
@@ -47,8 +70,8 @@ type AuthEntity interface {
 	Entity
 	GetCorrespondingAuthModel() AuthModel
 	GetUsernameFieldName() string
-	RegisterCredsValidate(ctx context.Context) error
-	LoginCredsValidate(ctx context.Context) error
+	FormRegisterAction() AuthForm
+	FormLoginAction() AuthForm
 }
 
 type JWTPayload struct {
